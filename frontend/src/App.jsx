@@ -20,7 +20,7 @@ function App() {
                 .filter(Boolean);
 
             const response = await axios.post(
-                "https://graph-api-xyz.onrender.com/api/graph",
+                "https://bajaj-submission-usjd.onrender.com/api/graph",
                 { edges: edgeArray },
             );
 
