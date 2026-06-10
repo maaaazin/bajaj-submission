@@ -130,7 +130,7 @@ function GraphView({ hierarchy, graphId = 0 }) {
             refY="3.5"
             orient="auto"
           >
-            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+            <polygon points="0 0, 10 3.5, 0 7" fill="#a8b5ad" />
           </marker>
           {hasCycle && (
             <marker
@@ -141,7 +141,7 @@ function GraphView({ hierarchy, graphId = 0 }) {
               refY="3.5"
               orient="auto"
             >
-              <polygon points="0 0, 10 3.5, 0 7" fill="#f87171" />
+              <polygon points="0 0, 10 3.5, 0 7" fill="#b84a4a" />
             </marker>
           )}
         </defs>
