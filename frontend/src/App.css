@@ -60,26 +60,75 @@ pre {
   white-space: pre-wrap;
 }
 
-.tree-container {
-  padding: 20px;
+.graph-wrapper {
+  margin: 16px 0;
+  padding: 16px;
+  background: #0f172a;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  overflow-x: auto;
 }
 
-.node {
-  position: relative;
-  margin: 8px 0;
-  padding: 8px 14px;
+.graph-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+.graph-edge {
+  stroke: #94a3b8;
+  stroke-width: 2;
+}
+
+.cycle-edge {
+  stroke: #f87171;
+}
+
+.graph-node {
+  fill: #334155;
+  stroke: #64748b;
+  stroke-width: 2;
+}
+
+.root-node {
+  fill: #1d4ed8;
+  stroke: #60a5fa;
+}
+
+.cycle-node {
+  fill: #991b1b;
+  stroke: #f87171;
+}
+
+.graph-label {
+  fill: #f8fafc;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: Inter, sans-serif;
+  pointer-events: none;
+}
+
+.cycle-badge {
   display: inline-block;
-  background: #334155;
-  border-radius: 10px;
-  border: 1px solid #475569;
+  margin-bottom: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid #f87171;
+  color: #fca5a5;
+  font-size: 14px;
 }
 
-.node::before {
-  content: "";
-  position: absolute;
-  left: -20px;
-  top: 50%;
-  width: 20px;
-  height: 1px;
-  background: #94a3b8;
+.hierarchy-card {
+  padding: 12px 0;
+  border-bottom: 1px solid #334155;
+}
+
+.hierarchy-card:last-child {
+  border-bottom: none;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
 }

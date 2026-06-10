@@ -97,6 +97,18 @@ function processGraph(edges) {
   let largest_tree_root = "";
 
   for (const comp of components) {
+    const componentEdges = [];
+
+    for (const parent in adj) {
+      if (!comp.includes(parent)) continue;
+
+      for (const child of adj[parent] || []) {
+        if (comp.includes(child)) {
+          componentEdges.push({ from: parent, to: child });
+        }
+      }
+    }
+
     const rootCandidates = comp.filter(
       node => !childNodes.has(node)
     );
@@ -141,6 +153,8 @@ function processGraph(edges) {
         root,
         tree: {},
         has_cycle: true,
+        nodes: [...comp].sort(),
+        edges: componentEdges,
       });
 
       continue;
@@ -190,6 +204,8 @@ function processGraph(edges) {
       root,
       tree: treeObj,
       depth: d,
+      nodes: [...comp].sort(),
+      edges: componentEdges,
     });
   }
 
