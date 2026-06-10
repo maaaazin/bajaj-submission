@@ -30,15 +30,15 @@ function processGraph(edges) {
 
     const [parent, child] = edge.split("->");
 
-    if (childParent.has(child)) {
-      continue;
+    if (!childParent.has(child)) {
+      childParent.set(child, parent);
     }
-
-    childParent.set(child, parent);
 
     if (!adj[parent]) adj[parent] = [];
 
-    adj[parent].push(child);
+    if (!adj[parent].includes(child)) {
+      adj[parent].push(child);
+    }
 
     nodes.add(parent);
     nodes.add(child);
@@ -126,25 +126,26 @@ function processGraph(edges) {
     const color = {};
 
     function detectCycle(node) {
+      if (color[node] === 1) {
+        hasCycle = true;
+        return;
+      }
+      if (color[node] === 2) return;
+
       color[node] = 1;
 
-      for (const child of (adj[node] || [])) {
+      for (const child of adj[node] || []) {
         if (!comp.includes(child)) continue;
-
-        if (color[child] === 1) {
-          hasCycle = true;
-          return;
-        }
-
-        if (!color[child]) {
-          detectCycle(child);
-        }
+        detectCycle(child);
       }
 
       color[node] = 2;
     }
 
-    detectCycle(root);
+    for (const node of comp) {
+      if (!color[node]) detectCycle(node);
+      if (hasCycle) break;
+    }
 
     if (hasCycle) {
       total_cycles++;

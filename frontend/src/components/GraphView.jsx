@@ -1,81 +1,130 @@
 const NODE_RADIUS = 24;
-const LEVEL_HEIGHT = 90;
-const NODE_SPACING = 90;
 
-function computeLayout(nodes, edges, root, hasCycle) {
-  const positions = {};
+function findCycleEdges(nodes, edges) {
+  const cycleEdges = new Set();
+  const color = {};
 
-  if (hasCycle || nodes.length <= 1) {
-    const radius = Math.max(90, nodes.length * 28);
-    const centerX = radius + 60;
-    const centerY = radius + 60;
+  function dfs(node) {
+    if (color[node] === 1) return true;
+    if (color[node] === 2) return false;
 
-    nodes.forEach((node, i) => {
-      const angle = (2 * Math.PI * i) / nodes.length - Math.PI / 2;
-      positions[node] = {
-        x: centerX + radius * Math.cos(angle),
-        y: centerY + radius * Math.sin(angle),
-      };
-    });
-
-    return {
-      positions,
-      width: centerX * 2,
-      height: centerY * 2,
-    };
-  }
-
-  const levels = {};
-  const visited = new Set();
-  const queue = [[root, 0]];
-  visited.add(root);
-
-  while (queue.length) {
-    const [node, level] = queue.shift();
-    if (!levels[level]) levels[level] = [];
-    levels[level].push(node);
+    color[node] = 1;
 
     for (const edge of edges) {
-      if (edge.from === node && !visited.has(edge.to)) {
-        visited.add(edge.to);
-        queue.push([edge.to, level + 1]);
+      if (edge.from !== node) continue;
+
+      if (color[edge.to] === 1) {
+        cycleEdges.add(`${edge.from}->${edge.to}`);
+        return true;
+      }
+
+      if (!color[edge.to] && dfs(edge.to)) {
+        cycleEdges.add(`${edge.from}->${edge.to}`);
+        return true;
       }
     }
+
+    color[node] = 2;
+    return false;
   }
 
   for (const node of nodes) {
-    if (!visited.has(node)) {
-      const nextLevel = Math.max(...Object.keys(levels).map(Number), -1) + 1;
-      if (!levels[nextLevel]) levels[nextLevel] = [];
-      levels[nextLevel].push(node);
+    if (!color[node]) dfs(node);
+  }
+
+  return cycleEdges;
+}
+
+function forceDirectedLayout(nodes, edges, root) {
+  const n = nodes.length;
+  const padding = 60;
+  const idealLength = 110;
+  const iterations = 150;
+
+  let width = Math.max(320, n * 80);
+  let height = Math.max(280, n * 70);
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const initRadius = Math.max(70, n * 26);
+
+  const positions = {};
+
+  nodes.forEach((node, i) => {
+    const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+    positions[node] = {
+      x: centerX + initRadius * Math.cos(angle),
+      y: centerY + initRadius * Math.sin(angle),
+    };
+  });
+
+  if (root && positions[root]) {
+    positions[root].y -= 30;
+  }
+
+  for (let iter = 0; iter < iterations; iter++) {
+    const disp = Object.fromEntries(nodes.map((node) => [node, { x: 0, y: 0 }]));
+    const cooling = 1 - iter / iterations;
+
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const a = nodes[i];
+        const b = nodes[j];
+        let dx = positions[a].x - positions[b].x;
+        let dy = positions[a].y - positions[b].y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const repulse = (3500 * cooling) / (dist * dist);
+
+        disp[a].x += (dx / dist) * repulse;
+        disp[a].y += (dy / dist) * repulse;
+        disp[b].x -= (dx / dist) * repulse;
+        disp[b].y -= (dy / dist) * repulse;
+      }
+    }
+
+    for (const edge of edges) {
+      const a = edge.from;
+      const b = edge.to;
+      let dx = positions[b].x - positions[a].x;
+      let dy = positions[b].y - positions[a].y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const attract = (dist - idealLength) * 0.08 * cooling;
+
+      disp[a].x += (dx / dist) * attract;
+      disp[a].y += (dy / dist) * attract;
+      disp[b].x -= (dx / dist) * attract;
+      disp[b].y -= (dy / dist) * attract;
+    }
+
+    for (const node of nodes) {
+      positions[node].x += disp[node].x * 0.12;
+      positions[node].y += disp[node].y * 0.12;
     }
   }
 
-  const levelKeys = Object.keys(levels)
-    .map(Number)
-    .sort((a, b) => a - b);
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
 
-  let maxLevelWidth = 1;
-  for (const level of levelKeys) {
-    maxLevelWidth = Math.max(maxLevelWidth, levels[level].length);
+  for (const node of nodes) {
+    minX = Math.min(minX, positions[node].x);
+    minY = Math.min(minY, positions[node].y);
+    maxX = Math.max(maxX, positions[node].x);
+    maxY = Math.max(maxY, positions[node].y);
   }
 
-  const canvasWidth = Math.max(280, maxLevelWidth * NODE_SPACING + 80);
-  const canvasHeight = Math.max(160, levelKeys.length * LEVEL_HEIGHT + 80);
+  const offsetX = padding - minX + NODE_RADIUS;
+  const offsetY = padding - minY + NODE_RADIUS;
 
-  for (const level of levelKeys) {
-    const nodesAtLevel = levels[level];
-    nodesAtLevel.forEach((node, i) => {
-      positions[node] = {
-        x:
-          (i - (nodesAtLevel.length - 1) / 2) * NODE_SPACING +
-          canvasWidth / 2,
-        y: level * LEVEL_HEIGHT + 50,
-      };
-    });
+  for (const node of nodes) {
+    positions[node].x += offsetX;
+    positions[node].y += offsetY;
   }
 
-  return { positions, width: canvasWidth, height: canvasHeight };
+  width = maxX - minX + padding * 2 + NODE_RADIUS * 2;
+  height = maxY - minY + padding * 2 + NODE_RADIUS * 2;
+
+  return { positions, width, height };
 }
 
 function getArrowPoints(from, to, positions) {
@@ -102,16 +151,14 @@ function GraphView({ hierarchy, graphId = 0 }) {
 
   if (!nodes.length) return null;
 
-  const { positions, width, height } = computeLayout(
-    nodes,
-    edges,
-    root,
-    hasCycle,
-  );
+  const cycleEdges = findCycleEdges(nodes, edges);
+  const showCycleStyle = hasCycle || cycleEdges.size > 0;
+
+  const { positions, width, height } = forceDirectedLayout(nodes, edges, root);
 
   return (
     <div className="graph-wrapper">
-      {hasCycle && (
+      {showCycleStyle && (
         <div className="cycle-badge">Cycle detected — root {root}</div>
       )}
 
@@ -132,18 +179,16 @@ function GraphView({ hierarchy, graphId = 0 }) {
           >
             <polygon points="0 0, 10 3.5, 0 7" fill="#a8b5ad" />
           </marker>
-          {hasCycle && (
-            <marker
-              id={cycleMarkerId}
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 3.5, 0 7" fill="#b84a4a" />
-            </marker>
-          )}
+          <marker
+            id={cycleMarkerId}
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="#b84a4a" />
+          </marker>
         </defs>
 
         {edges.map((edge, i) => {
@@ -152,27 +197,32 @@ function GraphView({ hierarchy, graphId = 0 }) {
             edge.to,
             positions,
           );
+          const edgeKey = `${edge.from}->${edge.to}`;
+          const isCycleEdge = cycleEdges.has(edgeKey);
 
           return (
             <line
-              key={`${edge.from}-${edge.to}-${i}`}
+              key={`${edgeKey}-${i}`}
               x1={x1}
               y1={y1}
               x2={x2}
               y2={y2}
-              className={hasCycle ? "graph-edge cycle-edge" : "graph-edge"}
-              markerEnd={`url(#${hasCycle ? cycleMarkerId : markerId})`}
+              className={isCycleEdge ? "graph-edge cycle-edge" : "graph-edge"}
+              markerEnd={`url(#${isCycleEdge ? cycleMarkerId : markerId})`}
             />
           );
         })}
 
         {nodes.map((node) => (
-          <g key={node} transform={`translate(${positions[node].x}, ${positions[node].y})`}>
+          <g
+            key={node}
+            transform={`translate(${positions[node].x}, ${positions[node].y})`}
+          >
             <circle
               r={NODE_RADIUS}
               className={
                 node === root
-                  ? hasCycle
+                  ? showCycleStyle
                     ? "graph-node root-node cycle-node"
                     : "graph-node root-node"
                   : "graph-node"
