@@ -20,7 +20,7 @@ function App() {
                 .filter(Boolean);
 
             const response = await axios.post(
-                "http://localhost:3000/api/graph",
+                "https://graph-api-xyz.onrender.com/api/graph",
                 { edges: edgeArray },
             );
 
